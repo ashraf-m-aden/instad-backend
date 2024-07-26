@@ -1,0 +1,30 @@
+{
+  "name": "backend-aviation",
+  "version": "1.0.0",
+  "description": "Backend for the AAC project",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node src/index.js",
+    "dev": "env-cmd -f ./config/dev.env nodemon start src/index.js"
+  },
+  "author": "Ashraf Mohamed",
+  "license": "ISC",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.4",
+    "env-cmd": "^10.1.0",
+    "express": "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.1.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.2",
+    "nodemailer": "^6.9.9",
+    "nodemailer-express-handlebars": "^6.1.2",
+    "nodemon": "^2.0.2",
+    "validator": "^13.12.0",
+    "vue-email": "^0.8.8"
+  }
+}
