@@ -86,11 +86,13 @@ router.get("/user/:id",auth, async (req, res) => {
 router.get("/user/isConnected/me",auth, async (req, res) => {
   // get one user
   try {
+    console.log("isconnected back");
     if (!req.user) {
       return res.status(404);
     }
     res.status(200).send(req.user);
   } catch (error) {
+    console.log(error);
     res.status(500).send(error);
   }
 });

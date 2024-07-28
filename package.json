@@ -1,7 +1,7 @@
 {
-  "name": "backend-aviation",
+  "name": "backend-instad",
   "version": "1.0.0",
-  "description": "Backend for the AAC project",
+  "description": "Backend for INSTAD",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
