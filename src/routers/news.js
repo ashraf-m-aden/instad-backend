@@ -29,20 +29,7 @@ router.patch("/news", auth, async (req, res) => {
     res.status(500).send(error);
   }
 });
-router.patch("/news/mdp/:id", auth, async (req, res) => {
-  // modifier le mot de passe d'un utilisateur
-  let news = await News.findById({ _id: req.params.id });
-  if (!news) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
-  }
-  try {
-    news.password = req.body.password;
-    await news.save();
-    return res.send(news);
-  } catch (error) {
-    res.status(500).send(error);
-  }
-});
+
 
 router.delete("/news/:id", auth, async (req, res) => {
   // desactiver un utilisateur

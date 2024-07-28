@@ -93,32 +93,5 @@ router.get("/fichiers/:categorie", async (req, res) => {
   }
 });
 
-///////////////////////////////////
 
-router.post("/fichier/logout", auth, async (req, res) => {
-  try {
-    req.fichier.tokens = await req.fichier.tokens.filter((token) => {
-      return token.token !== req.token;
-    });
-    await req.fichier.save();
-    res.send();
-  } catch (error) {
-    res.status(404).send(error);
-  }
-});
-
-router.post("/fichier/login", async (req, res) => {
-  // login
-  try {
-    let fichier = await Fichier.findByCredentials(
-      req.body.login,
-      req.body.password
-    );
-    const token = await fichier.generateToken();
-
-    return res.status(201).send({ fichier, token });
-  } catch (e) {
-    res.status(404).send(e);
-  }
-});
 module.exports = router;
