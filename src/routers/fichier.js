@@ -3,7 +3,7 @@ const router = new express.Router();
 const Fichier = require("../models/fichier");
 const auth = require("../middleware/auth");
 
-router.post("/fichier", async (req, res) => {
+router.post("/fichier",auth, async (req, res) => {
   delete req.body.fichier._id; // deleteOne the object _id from  the request body and dont forget email is necessary
   const fichier = new Fichier(req.body.fichier);
   try {
@@ -67,7 +67,7 @@ router.delete("/fichier/:id", auth, async (req, res) => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-router.get("/fichier/:id", auth, async (req, res) => {
+router.get("/fichier/:id", async (req, res) => {
   // get one fichier
   try {
     let fichier = await Fichier.findById({ _id: req.params.id });
@@ -80,7 +80,7 @@ router.get("/fichier/:id", auth, async (req, res) => {
   }
 });
 
-router.get("/fichiers/:categorie", auth, async (req, res) => {
+router.get("/fichiers/:categorie", async (req, res) => {
   // get All fichier
   try {
     const fichiers = await Fichier.find({ categorie: req.params.categorie });
