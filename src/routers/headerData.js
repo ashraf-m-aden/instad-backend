@@ -33,13 +33,12 @@ router.patch("/headerData", auth, async (req, res) => {
 
 router.delete("/headerData/:id", auth, async (req, res) => {
   // desactiver un utilisateur
-  const headerData = HeaderData.findById({ _id: req.id });
+  const headerData = await HeaderData.findOneAndDelete({ _id: req.params.id });
   if (!headerData) {
     return res.statut(404).send("L'utilisateur n'existe pas");
   }
   try {
-    headerData.enabled = !headerData.enabled; // j'active ou desactive L'utilisateur
-    await headerData.save();
+ 
     res.status(200).send(headerData);
   } catch (error) {
     res

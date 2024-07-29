@@ -33,13 +33,12 @@ router.patch("/flash", auth, async (req, res) => {
 
 router.delete("/flash/:id", auth, async (req, res) => {
   // desactiver un utilisateur
-  const flash = Flash.findById({ _id: req.id });
+  const flash = await Flash.findOneAndDelete({ _id: req.params.id });
   if (!flash) {
     return res.statut(404).send("L'utilisateur n'existe pas");
   }
   try {
-    flash.enabled = !flash.enabled; // j'active ou desactive L'utilisateur
-    await flash.save();
+ 
     res.status(200).send(flash);
   } catch (error) {
     res
