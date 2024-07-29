@@ -46,15 +46,15 @@ router.patch("/fichier/mdp/:id", auth, async (req, res) => {
 
 router.delete("/fichier/:id", auth, async (req, res) => {
   // desactiver un utilisateur
-  const fichier = Fichier.findById({ _id: req.id });
+  const fichier = await Fichier.findOneAndDelete({ _id: req.params.id });
   if (!fichier) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Le fichier n'existe pas n'existe pas");
   }
   try {
-    fichier.enabled = !fichier.enabled; // j'active ou desactive L'utilisateur
-    await fichier.save();
+
     res.status(200).send(fichier);
   } catch (error) {
+    console.log(error);
     res
       .status(500)
       .send(

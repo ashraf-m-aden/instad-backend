@@ -47,7 +47,7 @@ router.patch("/user/mdp/:id", auth, async (req, res) => {
 
 router.delete("/user/:id", auth, async (req, res) => {
   // desactiver un utilisateur
-  const user = User.findById({ _id: req.id });
+  const user = User.findById({ _id: req.params.id });
   if (!user) {
     return res.statut(404).send("L'utilisateur n'existe pas");
   }
@@ -86,7 +86,6 @@ router.get("/user/:id",auth, async (req, res) => {
 router.get("/user/isConnected/me",auth, async (req, res) => {
   // get one user
   try {
-    console.log("isconnected back");
     if (!req.user) {
       return res.status(404);
     }

@@ -12,11 +12,13 @@ const auth = async (req, res, next) => {
 
       next();
     } 
+
     else{
       res.status(401).send({ error: "Veuillez vous connecter" });
 
     }
   } catch (error) {
+    console.log(error);
     res.status(401).send({ error: "Veuillez vous connecter" });
   }
 };
