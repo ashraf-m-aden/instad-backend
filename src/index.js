@@ -4,11 +4,14 @@ const path = require("path");
 require("./db/mongoose");
 
 const cluster = require("cluster");
-const all = require('./routers/index')
+const all = require("./routers/index");
 const app = express();
 const port = process.env.PORT || 3001;
 app.use(function (req, res, next) {
-  res.header("Access-Control-Allow-Origin", "[*,http://localhost:3000,https://rgph-3.web.app/,https://instad-dj.netlify.app/]");
+  res.header(
+    "Access-Control-Allow-Origin",
+    "[*,http://localhost:3000,https://rgph-3.web.app/,https://instad-dj.netlify.app]"
+  );
   res.header(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Authorization,  Content-Type, Accept"
@@ -19,11 +22,12 @@ app.use(function (req, res, next) {
 const imagesPath = path.join(__dirname, "../images");
 const configcORS = {
   origin: "*",
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
 };
 app.use(cors(configcORS));
 app.use("/images", express.static(imagesPath));
 app.use(express.json());
-app.use(all)
+app.use(all);
 
 let workers = [];
 
