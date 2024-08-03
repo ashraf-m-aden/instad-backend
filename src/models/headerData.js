@@ -13,7 +13,10 @@ const headerDataSchema = new mongoose.Schema(
     },
 
     date: {
-      type: Date,
+      type: String,
+    },
+    position: {
+      type: Number,
     },
 
     icon: {

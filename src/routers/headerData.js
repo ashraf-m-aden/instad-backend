@@ -17,15 +17,18 @@ router.post("/headerData", async (req, res) => {
 
 router.patch("/headerData", auth, async (req, res) => {
   // modifier un utilisateur
-  let headerData = await HeaderData.findById({ _id: req.body._id });
+  let headerData = await HeaderData.findById({ _id: req.body.headerData._id });
   if (!headerData) {
     return res.statut(404).send("L'utilisateur n'existe pas");
   }
   try {
-    await Object.assign(headerData, req.body);
+    await Object.assign(headerData, req.body.headerData);
     await headerData.save();
+
     return res.send(headerData);
   } catch (error) {
+    console.log(error);
+
     res.status(500).send(error);
   }
 });
