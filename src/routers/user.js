@@ -5,8 +5,8 @@ const auth = require("../middleware/auth");
 
 router.post("/user", async (req, res) => {
   // nouvel utilisateur
-  delete req.body._id; // deleteOne the object _id from  the request body and dont forget email is necessary
-  const user = new User(req.body);
+  delete req.body.user._id; // deleteOne the object _id from  the request body and dont forget email is necessary
+  const user = new User(req.body.user);
   try {
     await user.save();
     return res.status(200).send(user);
@@ -18,12 +18,12 @@ router.post("/user", async (req, res) => {
 
 router.patch("/user", auth, async (req, res) => {
   // modifier un utilisateur
-  let user = await User.findById({ _id: req.body._id });
+  let user = await User.findById({ _id: req.body.user._id });
   if (!user) {
     return res.statut(404).send("L'utilisateur n'existe pas");
   }
   try {
-    await Object.assign(user, req.body);
+    await Object.assign(user, req.body.user);
     await user.save();
     return res.send(user);
   } catch (error) {
@@ -70,7 +70,7 @@ router.delete("/user/:id", auth, async (req, res) => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-router.get("/user/:id",auth, async (req, res) => {
+router.get("/user/:id", auth, async (req, res) => {
   // get one user
   try {
     let user = await User.findById({ _id: req.params.id });
@@ -83,7 +83,7 @@ router.get("/user/:id",auth, async (req, res) => {
   }
 });
 
-router.get("/user/isConnected/me",auth, async (req, res) => {
+router.get("/user/isConnected/me", auth, async (req, res) => {
   // get one user
   try {
     if (!req.user) {
@@ -96,7 +96,7 @@ router.get("/user/isConnected/me",auth, async (req, res) => {
   }
 });
 
-router.get("/users",auth, async (req, res) => {
+router.get("/users", auth, async (req, res) => {
   // get All user
   try {
     const users = await User.find({});
@@ -135,8 +135,7 @@ router.post("/user/login", async (req, res) => {
 
     return res.status(201).send({ user, token });
   } catch (e) {
-    console.log(e);
-    res.status(404).send(e);
+    res.status(404).send("Utilisateur inexistant");
   }
 });
 module.exports = router;

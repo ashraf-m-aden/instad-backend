@@ -14,8 +14,8 @@ const userSchema = new mongoose.Schema(
     name: {
       type: String,
     },
-    role: {
-      type: String,
+    roles: {
+      type: Array,
     },
 
     enabled: {
