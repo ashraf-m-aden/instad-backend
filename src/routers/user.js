@@ -20,7 +20,7 @@ router.patch("/user", auth, async (req, res) => {
   // modifier un utilisateur
   let user = await User.findById({ _id: req.body.user._id });
   if (!user) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Les données sont introuvables");
   }
   try {
     await Object.assign(user, req.body.user);
@@ -34,7 +34,7 @@ router.patch("/user/mdp/:id", auth, async (req, res) => {
   // modifier le mot de passe d'un utilisateur
   let user = await User.findById({ _id: req.params.id });
   if (!user) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Les données sont introuvables");
   }
   try {
     user.password = req.body.password;
@@ -49,7 +49,7 @@ router.delete("/user/:id", auth, async (req, res) => {
   // desactiver un utilisateur
   const user = User.findById({ _id: req.params.id });
   if (!user) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Les données sont introuvables");
   }
   try {
     user.enabled = !user.enabled; // j'active ou desactive L'utilisateur

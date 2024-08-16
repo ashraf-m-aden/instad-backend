@@ -19,7 +19,7 @@ router.patch("/flash", auth, async (req, res) => {
   // modifier un utilisateur
   let flash = await Flash.findById({ _id: req.body._id });
   if (!flash) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Les données sont introuvables");
   }
   try {
     await Object.assign(flash, req.body);
@@ -35,7 +35,7 @@ router.delete("/flash/:id", auth, async (req, res) => {
   // desactiver un utilisateur
   const flash = await Flash.findOneAndDelete({ _id: req.params.id });
   if (!flash) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Les données sont introuvables");
   }
   try {
  

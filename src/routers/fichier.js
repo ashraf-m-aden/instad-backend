@@ -19,7 +19,7 @@ router.patch("/fichier", auth, async (req, res) => {
   // modifier un utilisateur
   let fichier = await Fichier.findById({ _id: req.body._id });
   if (!fichier) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Les données sont introuvables");
   }
   try {
     await Object.assign(fichier, req.body);
@@ -33,7 +33,7 @@ router.patch("/fichier/mdp/:id", auth, async (req, res) => {
   // modifier le mot de passe d'un utilisateur
   let fichier = await Fichier.findById({ _id: req.params.id });
   if (!fichier) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Les données sont introuvables");
   }
   try {
     fichier.password = req.body.password;
