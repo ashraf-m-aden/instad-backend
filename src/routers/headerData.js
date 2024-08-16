@@ -19,7 +19,7 @@ router.patch("/headerData", auth, async (req, res) => {
   // modifier un utilisateur
   let headerData = await HeaderData.findById({ _id: req.body.headerData._id });
   if (!headerData) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Les données sont introuvables");
   }
   try {
     await Object.assign(headerData, req.body.headerData);
@@ -38,7 +38,7 @@ router.delete("/headerData/:id", auth, async (req, res) => {
   // desactiver un utilisateur
   const headerData = await HeaderData.findOneAndDelete({ _id: req.params.id });
   if (!headerData) {
-    return res.statut(404).send("L'utilisateur n'existe pas");
+    return res.statut(404).send("Les données sont introuvables");
   }
   try {
  

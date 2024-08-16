@@ -93,5 +93,13 @@ userSchema.pre("save", async function (next) {
   next();
 });
 const User = mongoose.model("users", userSchema);
-
+userSchema.pre("find", function () {
+  this.sort({ email: 1 });
+});
+userSchema.pre("findById", function () {
+  this.sort({ email: -1 });
+});
+userSchema.pre("findOne", function () {
+  this.sort({ email: -1 });
+});
 module.exports = User;

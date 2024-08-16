@@ -1,50 +1,51 @@
 const express = require("express");
 const router = new express.Router();
-const News = require("../models/news");
+const Gallery = require("../models/gallery");
 const auth = require("../middleware/auth");
 
-router.post("/news",auth, async (req, res) => {
-  delete req.body.news._id; // deleteOne the object _id from  the request body and dont forget email is necessary
-  const news = new News(req.body.news);
+router.post("/gallery", async (req, res) => {
+  delete req.body.gallery._id; // deleteOne the object _id from  the request body and dont forget email is necessary
+  const gallery = new Gallery(req.body.gallery);
   try {
-    await news.save();
-    return res.status(200).send(news);
+    await gallery.save();
+    return res.status(200).send(gallery);
   } catch (error) {
     console.log(error);
     res.status(400).send(error);
   }
 });
 
-router.patch("/news", auth, async (req, res) => {
+router.patch("/gallery", auth, async (req, res) => {
   // modifier un utilisateur
-  let news = await News.findById({ _id: req.body._id });
-  if (!news) {
+  let gallery = await Gallery.findById({ _id: req.body.gallery._id });
+  if (!gallery) {
     return res.statut(404).send("Les données sont introuvables");
   }
   try {
-    await Object.assign(news, req.body);
-    await news.save();
-    return res.send(news);
+    await Object.assign(gallery, req.body.gallery);
+    await gallery.save();
+
+    return res.send(gallery);
   } catch (error) {
+    console.log(error);
+
     res.status(500).send(error);
   }
 });
 
-
-router.delete("/news/:id", auth, async (req, res) => {
+router.delete("/gallery/:id", auth, async (req, res) => {
   // desactiver un utilisateur
-  const news = await News.findOneAndDelete({ _id: req.params.id });
-  if (!news) {
+  const gallery = await Gallery.findOneAndDelete({ _id: req.params.id });
+  if (!gallery) {
     return res.statut(404).send("Les données sont introuvables");
   }
   try {
-   
-    res.status(200).send(news);
+    res.status(200).send(gallery);
   } catch (error) {
     res
       .status(500)
       .send(
-        "Une erreur est survenue lors de la modification veuillez réessayer."
+        error
       );
   }
 });
@@ -53,32 +54,31 @@ router.delete("/news/:id", auth, async (req, res) => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-router.get("/news/:id", async (req, res) => {
-  // get one news
+router.get("/gallery/:id", async (req, res) => {
+  // get one gallery
   try {
-    let news = await News.findById({ _id: req.params.id });
-    if (!news) {
+    let gallery = await Gallery.findById({ _id: req.params.id });
+    if (!gallery) {
       return res.status(404).send("Utilisateur inexistant");
     }
-    res.status(200).send(news);
+    res.status(200).send(gallery);
   } catch (error) {
     res.status(500).send(error);
   }
 });
 
-router.get("/newss", async (req, res) => {
-  // get All news
+router.get("/gallerys", async (req, res) => {
+  // get All gallery
   try {
-    const news = await News.find({});
-    if (!news) {
+    const gallery = await Gallery.find({});
+    if (!gallery) {
       res.status(200).send([]);
     }
-    res.status(200).send(news);
+    res.status(200).send(gallery);
   } catch (error) {
     console.log(error);
     res.status(500).send(error);
   }
 });
-
 
 module.exports = router;
