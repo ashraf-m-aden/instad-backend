@@ -2,14 +2,12 @@ const mongoose = require("mongoose");
 const validator = require("validator");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const newsSchema = new mongoose.Schema(
+const dgSchema = new mongoose.Schema(
   {
-    title: {
-      type: "string",
-    },
     content: {
       type: "string",
     },
+
     imgUrl: {
       type: "string",
     },
@@ -22,6 +20,6 @@ const newsSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-const News = mongoose.model("news", newsSchema);
+const DG = mongoose.model("dgs", dgSchema);
 
-module.exports = News;
+module.exports = DG;
