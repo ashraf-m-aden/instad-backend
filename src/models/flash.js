@@ -7,7 +7,9 @@ const flashSchema = new mongoose.Schema(
     info: {
       type: "string",
     },
-
+    url: {
+      type: "string",
+    },
     enabled: {
       type: "boolean",
       default: true,
