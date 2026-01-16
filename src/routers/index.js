@@ -4,6 +4,7 @@ const flash = require("./flash");
 const news = require("./news");
 const headerData = require("./headerData");
 const gallery = require("./gallery");
-allUses = [user, fichier, news, flash,headerData,gallery];
+const visitors = require("./visitor");
+allUses = [user, fichier, news, flash, headerData, gallery, visitors];
 
 module.exports = allUses;
