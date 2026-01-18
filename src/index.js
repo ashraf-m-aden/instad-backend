@@ -11,14 +11,18 @@ const port = process.env.PORT || 3001;
 const allowedOrigins = [
   "https://instad-dj-6abc7b0eb612.herokuapp.com",
   "http://localhost:3000",
+  "https://instad.dj"
 ];
 const configCORS = {
   origin: function (origin, callback) {
+        console.log('Origin:', origin);
     if (!origin) {
+            console.log('Pas d\'origin - AUTORISÉ');
       return callback(null, true);
     }
 
     if (allowedOrigins.includes(origin)) {
+            console.log('Origin trouvée - AUTORISÉ');
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
