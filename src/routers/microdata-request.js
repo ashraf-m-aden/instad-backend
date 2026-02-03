@@ -74,7 +74,7 @@ const isAdmin = (req, res, next) => {
  * @desc    Créer une nouvelle demande de micro-données
  * @access  Public
  */
-router.post('/', upload.array('attachments', 5), async (req, res) => {
+router.post('/api/microdata-requests', upload.array('attachments', 5), async (req, res) => {
   try {
     const {
       // Informations demandeur
@@ -91,7 +91,6 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
       projectTitle,
       projectDescription,
       researchObjectives,
-      dataType,
       dataTypeOther,
       dataPeriod,
       specificVariables,
@@ -108,6 +107,16 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
       // Autres
       language,
     } = req.body;
+
+    // Récupérer dataType qui peut être un array ou un string
+    let dataType = req.body['dataType[]'] || req.body.dataType || [];
+    
+    // S'assurer que c'est toujours un array
+    if (!Array.isArray(dataType)) {
+      dataType = dataType ? [dataType] : [];
+    }
+    
+    console.log('DataType traité:', dataType);
 
     // Validation des données
     if (!firstName || !lastName || !email || !phone || !institution || !position) {
@@ -141,6 +150,19 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
       size: file.size,
     })) : [];
 
+    // Parser les objets JSON
+    const parsedAddress = address ? JSON.parse(address) : { street: '', city: '', country: 'Djibouti' };
+    const parsedDataPeriod = dataPeriod ? JSON.parse(dataPeriod) : { startYear: null, endYear: null };
+
+    console.log('Données à sauvegarder:', {
+      requesterType,
+      firstName,
+      lastName,
+      email,
+      dataType,
+      attachmentsCount: attachments.length
+    });
+
     // Créer la demande
     const microdataRequest = new MicrodataRequest({
       requesterType,
@@ -150,14 +172,14 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
       phone,
       institution,
       position,
-      address: typeof address === 'string' ? JSON.parse(address) : address,
+      address: parsedAddress,
       
       projectTitle,
       projectDescription,
       researchObjectives,
-      dataType: Array.isArray(dataType) ? dataType : [dataType],
+      dataType,
       dataTypeOther,
-      dataPeriod: typeof dataPeriod === 'string' ? JSON.parse(dataPeriod) : dataPeriod,
+      dataPeriod: parsedDataPeriod,
       specificVariables,
       geographicScope,
       usageDuration,
@@ -176,6 +198,12 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
     });
 
     await microdataRequest.save();
+
+    console.log('✅ Demande sauvegardée avec succès:', {
+      id: microdataRequest._id,
+      referenceNumber: microdataRequest.referenceNumber,
+      requester: `${microdataRequest.firstName} ${microdataRequest.lastName}`
+    });
 
     // TODO: Envoyer un email de confirmation au demandeur
     // sendConfirmationEmail(microdataRequest);
@@ -217,10 +245,10 @@ router.post('/', upload.array('attachments', 5), async (req, res) => {
  * @desc    Suivre l'état d'une demande par numéro de référence
  * @access  Public
  */
-router.get('/track/:referenceNumber', async (req, res) => {
+router.get('/api/microdata-requests/track/:referenceNumber', async (req, res) => {
   try {
     const { referenceNumber } = req.params;
-
+console.log(req.params)
     const request = await MicrodataRequest.findOne({ referenceNumber })
       .select('-internalNotes -submissionIp -userAgent -__v')
       .lean();
@@ -303,7 +331,7 @@ router.get('/verify-email/:email', async (req, res) => {
  * @desc    Obtenir toutes les demandes (avec filtres et pagination)
  * @access  Private/Admin
  */
-router.get('/admin', isAdmin, async (req, res) => {
+router.get('/api/microdata-requests/admin', async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -381,7 +409,7 @@ router.get('/admin', isAdmin, async (req, res) => {
  * @desc    Obtenir les détails complets d'une demande
  * @access  Private/Admin
  */
-router.get('/admin/:id', isAdmin, async (req, res) => {
+router.get('/api/microdata-requests/admin/:id', async (req, res) => {
   try {
     const request = await MicrodataRequest.findById(req.params.id)
       .populate('statusHistory.updatedBy', 'firstName lastName email')
@@ -408,7 +436,7 @@ router.get('/admin/:id', isAdmin, async (req, res) => {
  * @desc    Mettre à jour le statut d'une demande
  * @access  Private/Admin
  */
-router.patch('/admin/:id/status', isAdmin, async (req, res) => {
+router.patch('/api/microdata-requests/admin/:id/status', async (req, res) => {
   try {
     const { status, comment, publicComment } = req.body;
 
@@ -459,7 +487,7 @@ router.patch('/admin/:id/status', isAdmin, async (req, res) => {
  * @desc    Ajouter une note interne à une demande
  * @access  Private/Admin
  */
-router.post('/admin/:id/notes', isAdmin, async (req, res) => {
+router.post('/api/microdata-requests/admin/:id/notes', async (req, res) => {
   try {
     const { note } = req.body;
 
@@ -493,7 +521,7 @@ router.post('/admin/:id/notes', isAdmin, async (req, res) => {
  * @desc    Supprimer une demande (soft delete recommandé)
  * @access  Private/Admin
  */
-router.delete('/admin/:id', isAdmin, async (req, res) => {
+router.delete('/api/microdata-requests/admin/:id', async (req, res) => {
   try {
     const request = await MicrodataRequest.findById(req.params.id);
     
@@ -535,7 +563,7 @@ router.delete('/admin/:id', isAdmin, async (req, res) => {
  * @desc    Obtenir des statistiques globales
  * @access  Private/Admin
  */
-router.get('/admin/stats/overview', isAdmin, async (req, res) => {
+router.get('/api/microdata-requests/admin/stats/overview', async (req, res) => {
   try {
     const [totalRequests, statusBreakdown, recentRequests, monthlyStats] = await Promise.all([
       // Total des demandes

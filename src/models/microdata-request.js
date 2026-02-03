@@ -6,10 +6,10 @@ const microdataRequestSchema = new mongoose.Schema(
     // Référence unique de la demande (générée automatiquement)
     referenceNumber: {
       type: String,
-      required: true,
       unique: true,
       index: true,
       // Format: MDR-YYYYMMDD-XXXX (ex: MDR-20260203-0001)
+      // Retiré required car généré automatiquement dans le hook pre-save
     },
 
     // === INFORMATIONS SUR LE DEMANDEUR ===
@@ -233,7 +233,7 @@ const microdataRequestSchema = new mongoose.Schema(
         status: String,
         updatedBy: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'User', // Référence vers le modèle User (administrateur)
+          ref: 'users', // Référence vers le modèle User (administrateur)
         },
         updatedAt: {
           type: Date,
@@ -249,7 +249,7 @@ const microdataRequestSchema = new mongoose.Schema(
         note: String,
         addedBy: {
           type: mongoose.Schema.Types.ObjectId,
-          ref: 'User',
+          ref: 'users',
         },
         addedAt: {
           type: Date,
@@ -272,7 +272,7 @@ const microdataRequestSchema = new mongoose.Schema(
     // Décidé par (administrateur)
     decidedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: 'users',
     },
 
     // === DONNÉES SUPPLÉMENTAIRES ===
@@ -364,10 +364,16 @@ microdataRequestSchema.methods.hasAllAgreements = function () {
 
 // Avant la sauvegarde, générer le numéro de référence si c'est une nouvelle demande
 microdataRequestSchema.pre('save', async function (next) {
-  if (this.isNew && !this.referenceNumber) {
-    this.referenceNumber = await this.constructor.generateReferenceNumber();
+  try {
+    if (this.isNew && !this.referenceNumber) {
+      this.referenceNumber = await this.constructor.generateReferenceNumber();
+      console.log('✅ Référence générée:', this.referenceNumber);
+    }
+    next();
+  } catch (error) {
+    console.error('❌ Erreur génération référence:', error);
+    next(error);
   }
-  next();
 });
 
 // Avant la sauvegarde, ajouter le premier statut à l'historique
