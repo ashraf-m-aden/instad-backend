@@ -5,6 +5,7 @@ const news = require("./news");
 const headerData = require("./headerData");
 const gallery = require("./gallery");
 const visitors = require("./visitor");
-allUses = [user, fichier, news, flash, headerData, gallery, visitors];
+const request = require("./microdata-request");
+allUses = [user, fichier, news, flash, headerData, gallery, visitors,request];
 
 module.exports = allUses;
