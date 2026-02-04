@@ -7,7 +7,6 @@ const microdataRequestSchema = new mongoose.Schema(
     referenceNumber: {
       type: String,
       unique: true,
-      index: true,
       // Format: MDR-YYYYMMDD-XXXX (ex: MDR-20260203-0001)
       // Retiré required car généré automatiquement dans le hook pre-save
     },
@@ -224,7 +223,6 @@ const microdataRequestSchema = new mongoose.Schema(
         'cloture'                    // Clôturé
       ],
       default: 'soumis',
-      index: true,
     },
 
     // Historique des changements de statut

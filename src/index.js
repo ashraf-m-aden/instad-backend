@@ -11,6 +11,7 @@ const port = process.env.PORT || 3001;
 const allowedOrigins = [
   "https://instad-dj-6abc7b0eb612.herokuapp.com",
   "http://localhost:3000",
+  "http://localhost:3003",
   "https://instad.dj"
 ];
 const configCORS = {
