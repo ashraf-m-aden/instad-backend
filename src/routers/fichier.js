@@ -123,4 +123,20 @@ router.get("/publications", async (req, res) => {
   }
 });
 
+router.get("/newsletters/public/:categorie", async (req, res) => {
+  // get All fichier
+  try {
+    const fichiers = await Fichier.find({categorie:req.params.categorie}).sort({updatedAt:1}).limit(3);
+
+    if (!fichiers || fichiers.length == 0) {
+      // Amélioré la condition
+      return res.status(200).send([]); // Ajouté return
+    }
+
+    res.status(200).send(fichiers);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des fichiers:", error);
+    res.status(500).send({ error: error.message });
+  }
+});
 module.exports = router;
