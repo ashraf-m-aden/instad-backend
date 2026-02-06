@@ -4,7 +4,7 @@ const News = require("../models/news");
 const auth = require("../middleware/auth");
 const DG = require("../models/dg");
 
-router.post("/news",auth, async (req, res) => {
+router.post("/news", auth, async (req, res) => {
   delete req.body.news._id; // deleteOne the object _id from  the request body and dont forget email is necessary
   const news = new News(req.body.news);
   try {
@@ -31,7 +31,6 @@ router.patch("/news", auth, async (req, res) => {
   }
 });
 
-
 router.delete("/news/:id", auth, async (req, res) => {
   // desactiver un utilisateur
   const news = await News.findOneAndDelete({ _id: req.params.id });
@@ -39,13 +38,12 @@ router.delete("/news/:id", auth, async (req, res) => {
     return res.statut(404).send("Les données sont introuvables");
   }
   try {
-   
     res.status(200).send(news);
   } catch (error) {
     res
       .status(500)
       .send(
-        "Une erreur est survenue lors de la modification veuillez réessayer."
+        "Une erreur est survenue lors de la modification veuillez réessayer.",
       );
   }
 });
@@ -67,10 +65,12 @@ router.get("/news/:id", async (req, res) => {
   }
 });
 
-router.get("/newss", async (req, res) => {
+router.get("/news", async (req, res) => {
   // get All news
   try {
-    const news = await News.find({});
+    const news = await News.find({})
+      .sort({ createdAt: -1 }) // -1 pour ordre décroissant (plus récent en premier)
+      .limit(5);
     if (!news) {
       res.status(200).send([]);
     }
@@ -84,7 +84,7 @@ router.get("/dg", async (req, res) => {
   // get All news
   try {
     const news = await DG.find({});
- 
+
     res.status(200).send(news[0]);
   } catch (error) {
     console.log(error);
@@ -103,7 +103,7 @@ router.patch("/dg", auth, async (req, res) => {
     return res.send(data);
   } catch (error) {
     console.log(error);
-    
+
     res.status(500).send(error);
   }
 });

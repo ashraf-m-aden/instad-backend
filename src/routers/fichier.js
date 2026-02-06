@@ -79,35 +79,44 @@ router.get("/fichier/:id", async (req, res) => {
   }
 });
 
-router.get("/fichiers/:categorie/:year", async (req, res) => {
-  // get All fichier
+router.get("/fichiers/:categorie/:year?", async (req, res) => {  
   try {
     const year = req.params.year;
-
-    if (!!year) {
-      const fichiers = await Fichier.find({
-        categorie: req.params.categorie,
-      });
-
-      if (!fichiers || fichiers.length == 0) {
-        // Amélioré la condition
-        return res.status(200).send([]); // Ajouté return
-      }
-
-      res.status(200).send(fichiers);
-    } else {
-      const fichiers = await Fichier.find({
-        categorie: req.params.categorie,
-        year: parseInt(year), // Changé de $exist à $exists
-      });
-
-      if (!fichiers || fichiers.length == 0) {
-        // Amélioré la condition
-        return res.status(200).send([]); // Ajouté return
-      }
-
-      res.status(200).send(fichiers);
+    
+    // Build query object
+    const query = {
+      categorie: req.params.categorie,
+    };
+    
+    // Add year filter only if year is provided
+    if (year && year!=undefined && year!="undefined") {
+      query.year = year;
     }
+
+    const fichiers = await Fichier.find(query);
+
+    if (!fichiers || fichiers.length === 0) {
+      return res.status(200).send([]);
+    }
+
+    return res.status(200).send(fichiers);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des fichiers:", error);
+    res.status(500).send({ error: error.message });
+  }
+});
+
+router.get("/publications", async (req, res) => {
+  // get All fichier
+  try {
+    const fichiers = await Fichier.find({}).sort({ year:1, month: 1,trimestre:1,updatedAt:1}).limit(25);
+
+    if (!fichiers || fichiers.length == 0) {
+      // Amélioré la condition
+      return res.status(200).send([]); // Ajouté return
+    }
+
+    res.status(200).send(fichiers);
   } catch (error) {
     console.error("Erreur lors de la récupération des fichiers:", error);
     res.status(500).send({ error: error.message });
