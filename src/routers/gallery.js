@@ -5,7 +5,7 @@ const auth = require("../middleware/auth");
 const Infographic = require("../models/infographie");
 const Fichier = require("../models/fichier");
 
-router.post("/gallery", async (req, res) => {
+router.post("/galerie", async (req, res) => {
   delete req.body.gallery._id; // deleteOne the object _id from  the request body and dont forget email is necessary
   const gallery = new Gallery(req.body.gallery);
   try {
@@ -17,7 +17,7 @@ router.post("/gallery", async (req, res) => {
   }
 });
 
-router.patch("/gallery", auth, async (req, res) => {
+router.patch("/galerie", auth, async (req, res) => {
   // modifier un utilisateur
   let gallery = await Gallery.findById({ _id: req.body.gallery._id });
   if (!gallery) {
@@ -35,7 +35,7 @@ router.patch("/gallery", auth, async (req, res) => {
   }
 });
 
-router.delete("/gallery/:id", auth, async (req, res) => {
+router.delete("/galerie/:id", auth, async (req, res) => {
   // desactiver un utilisateur
   const gallery = await Gallery.findOneAndDelete({ _id: req.params.id });
   if (!gallery) {
@@ -56,7 +56,7 @@ router.delete("/gallery/:id", auth, async (req, res) => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-router.get("/gallery/:id", async (req, res) => {
+router.get("/galerie/:id", async (req, res) => {
   // get one gallery
   try {
     let gallery = await Gallery.findById({ _id: req.params.id });
@@ -69,7 +69,7 @@ router.get("/gallery/:id", async (req, res) => {
   }
 });
 
-router.get("/gallerys", async (req, res) => {
+router.get("/galeries", async (req, res) => {
   // get All gallery
   try {
     const gallery = await Gallery.find({});
