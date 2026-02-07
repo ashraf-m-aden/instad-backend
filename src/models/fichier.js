@@ -7,6 +7,9 @@ const fichierSchema = new mongoose.Schema(
     title: {
       type: "string",
     },
+    description: {
+      type: "string",
+    },
     year: {
       type: "Number",
       default: 0,
@@ -20,6 +23,9 @@ const fichierSchema = new mongoose.Schema(
       type: "string",
     },
     imgUrl: {
+      type: "string",
+    },
+    fichierImageUrl: {
       type: "string",
     },
 
@@ -36,10 +42,8 @@ const fichierSchema = new mongoose.Schema(
       type: "string",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
-
-
 
 const Fichier = mongoose.model("fichiers", fichierSchema);
 

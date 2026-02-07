@@ -106,10 +106,12 @@ router.get("/fichiers/:categorie/:year?", async (req, res) => {
   }
 });
 
-router.get("/publications", async (req, res) => {
+router.post("/publications", async (req, res) => {
   // get All fichier
+
+
   try {
-    const fichiers = await Fichier.find({}).sort({ year:1, month: 1,trimestre:1,updatedAt:1}).limit(25);
+    const fichiers = await Fichier.find({categorie:{$nin:req.body}}).sort({ year:1, month: 1,trimestre:1,updatedAt:1}).limit(25);
 
     if (!fichiers || fichiers.length == 0) {
       // Amélioré la condition
