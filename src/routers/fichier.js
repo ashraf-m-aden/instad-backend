@@ -66,6 +66,26 @@ router.delete("/fichier/:id", auth, async (req, res) => {
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+
+router.get("/fichiers", async (req, res) => {  
+  try {
+    
+
+    
+
+
+    const fichiers = await Fichier.find();
+
+    if (!fichiers || fichiers.length === 0) {
+      return res.status(200).send([]);
+    }
+
+    return res.status(200).send(fichiers);
+  } catch (error) {
+    console.error("Erreur lors de la récupération des fichiers:", error);
+    res.status(500).send({ error: error.message });
+  }
+});
 router.get("/fichier/:id", async (req, res) => {
   // get one fichier
   try {
