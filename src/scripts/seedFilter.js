@@ -53,63 +53,32 @@ const SEED_DATA = {
     "EDAM",
     "EDIM",
   ],
-  periode: [
-    "Mensuel",
-    "Trimestriel",
-    "Annuel",
-    "Ponctuel",
-  ],
-  format: [
-    "PDF",
-    "Excel",
-    "Word",
-    "Image",
-    "CSV",
-  ],
+  periode: ["Mensuel", "Trimestriel", "Annuel", "Ponctuel"],
+  format: ["PDF", "Excel", "Word", "Image", "CSV"],
 };
 
-async function seed() {
-  try {
-    await mongoose.connect(
-      "mongodb+srv://ash:9XesaXHmTzS2zLHn@instad0.upbxszo.mongodb.net/instad",
-    );
-    console.log("✅ Connecté à MongoDB");
+async function migrate() {
+  await mongoose.connect(
+    "mongodb+srv://ash:9XesaXHmTzS2zLHn@instad0.upbxszo.mongodb.net/instad",
+  ); // adapte l'URL
 
-    let created = 0;
-    let skipped = 0;
+  const filtres = await Filtre.find({
+    $or: [{ slug: null }, { slug: "" }, { slug: { $exists: false } }],
+  });
 
-    for (const [type, values] of Object.entries(SEED_DATA)) {
-      for (let i = 0; i < values.length; i++) {
-        try {
-          await Filtre.create({
-            type,
-            value: values[i],
-            order: i,
-            enabled: true,
-          });
-          created++;
-          console.log(`  ✅ ${type} → "${values[i]}"`);
-        } catch (err) {
-          if (err.code === 11000) {
-            // Doublon, on skip
-            skipped++;
-          } else {
-            console.error(`  ❌ ${type} → "${values[i]}" :`, err.message);
-          }
-        }
-      }
-    }
-
-    console.log(`\n── Résultat ──`);
-    console.log(`✅ Créés : ${created}`);
-    console.log(`⏭️  Déjà existants : ${skipped}`);
-    console.log(`📊 Total dans la collection : ${await Filtre.countDocuments()}`);
-  } catch (error) {
-    console.error("❌ Erreur :", error);
-  } finally {
-    await mongoose.disconnect();
-    console.log("🔌 Déconnecté");
+  for (const f of filtres) {
+    f.slug = f.value
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "");
+    await f.save();
+    console.log(`✓ ${f.type}: "${f.value}" → ${f.slug}`);
   }
+
+  console.log(`\n${filtres.length} filtres mis à jour`);
+  process.exit(0);
 }
 
-seed();
+migrate();
