@@ -8,6 +8,7 @@ const gallery = require("./gallery");
 const visitors = require("./visitor");
 const request = require("./microdata-request");
 const navs = require("./nav");
-allUses = [user, fichier, filtres, news,navs, flash, headerData, gallery, visitors,request];
+const thematiques = require("./thematiques");
+allUses = [user, fichier, filtres, news,navs, flash, headerData, gallery, visitors,request,thematiques];
 
 module.exports = allUses;
