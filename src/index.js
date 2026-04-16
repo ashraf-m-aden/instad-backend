@@ -1,6 +1,9 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const dotenv = require("dotenv");
+dotenv.config();
+
 require("./db/mongoose");
 
 const cluster = require("cluster");
@@ -12,18 +15,18 @@ const allowedOrigins = [
   "https://instad-dj-6abc7b0eb612.herokuapp.com",
   "http://localhost:3000",
   "http://localhost:3003",
-  "https://instad.dj"
+  "https://instad.dj",
 ];
 const configCORS = {
   origin: function (origin, callback) {
-        console.log('Origin:', origin);
+    console.log("Origin:", origin);
     if (!origin) {
-            console.log('Pas d\'origin - AUTORISÉ');
+      console.log("Pas d'origin - AUTORISÉ");
       return callback(null, true);
     }
 
     if (allowedOrigins.includes(origin)) {
-            console.log('Origin trouvée - AUTORISÉ');
+      console.log("Origin trouvée - AUTORISÉ");
       callback(null, true);
     } else {
       callback(new Error("Not allowed by CORS"));
