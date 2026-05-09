@@ -17,6 +17,8 @@ const FILTER_TYPES = [
   "projet",
   "periode",
   "format",
+  "year",
+  "month",
 ];
 
 const filtreSchema = new mongoose.Schema(
@@ -96,7 +98,7 @@ const filtreSchema = new mongoose.Schema(
       default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 // ── Hooks ───────────────────────────────────────────────────────────
@@ -122,8 +124,8 @@ function generateSlug(value) {
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // retirer accents
-    .replace(/[^a-z0-9]+/g, "-")    // remplacer non-alphanum par -
-    .replace(/^-+|-+$/g, "");       // retirer - en début/fin
+    .replace(/[^a-z0-9]+/g, "-") // remplacer non-alphanum par -
+    .replace(/^-+|-+$/g, ""); // retirer - en début/fin
 }
 
 // ── Index ───────────────────────────────────────────────────────────
