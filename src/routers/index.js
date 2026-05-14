@@ -11,6 +11,22 @@ const navs = require("./nav");
 const thematiques = require("./thematiques");
 const slides = require("./slides");
 const homeSettings = require("./homeSettings");
-allUses = [user, fichier, filtres, news,navs, flash, headerData, gallery, visitors,request,thematiques,slides,homeSettings];
+const footer = require("./footer");
+allUses = [
+  user,
+  fichier,
+  filtres,
+  news,
+  navs,
+  footer,
+  flash,
+  headerData,
+  gallery,
+  visitors,
+  request,
+  thematiques,
+  slides,
+  homeSettings,
+];
 
 module.exports = allUses;
