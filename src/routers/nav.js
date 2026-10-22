@@ -7,6 +7,9 @@
  * PUT    /navigation/:id      → modifier un item (label, type, children, order…)
  * DELETE /navigation/:id      → supprimer un item
  * PATCH  /navigation/reorder  → réordonner tous les items
+ *
+ * Les enfants d'un dropdown peuvent être de kind "submenu" et porter leur propre
+ * tableau "children" : c'est le 2e niveau, affiché en menu latéral côté front.
  */
 
 const express = require("express");
@@ -42,6 +45,52 @@ const resolveFilterPath = (filterType, filterValue) => {
 };
 
 /**
+ * Résout le label + le path d'un enfant (ou petit-enfant) de dropdown.
+ * Les séparateurs et les sous-menus sont renvoyés tels quels.
+ */
+const enrichChild = (child) => {
+  const obj = child.toObject ? child.toObject() : { ...child };
+
+  if (obj.kind === "filter") {
+    return {
+      ...obj,
+      resolvedPath: resolveFilterPath(obj.filterType, obj.filterValue),
+      resolvedLabel: obj.label || obj.filterValue,
+    };
+  }
+
+  if (obj.kind === "custom") {
+    return {
+      ...obj,
+      resolvedLabel: obj.label || obj.path,
+      resolvedPath: obj.path || "/",
+    };
+  }
+
+  // kind: "submenu" — sous-menu latéral : pas de path, on résout ses enfants
+  if (obj.kind === "submenu") {
+    return {
+      ...obj,
+      resolvedLabel: obj.label || "",
+      children: sortAndEnrichChildren(obj.children),
+    };
+  }
+
+  // separator
+  return obj;
+};
+
+/**
+ * Trie une liste d'enfants par "order" puis les enrichit.
+ */
+const sortAndEnrichChildren = (children) => {
+  if (!children || children.length === 0) return [];
+  return [...children]
+    .sort((a, b) => (a.order || 0) - (b.order || 0))
+    .map(enrichChild);
+};
+
+/**
  * Enrichit un item avec les paths résolus pour le frontend.
  */
 const enrichItem = (item) => {
@@ -54,29 +103,8 @@ const enrichItem = (item) => {
     obj.resolvedPath = obj.path || "/";
   }
 
-  // Résoudre les paths des enfants
-  if (obj.children && obj.children.length > 0) {
-    obj.children = obj.children
-      .sort((a, b) => (a.order || 0) - (b.order || 0))
-      .map((child) => {
-        if (child.kind === "filter") {
-          return {
-            ...child,
-            resolvedPath: resolveFilterPath(child.filterType, child.filterValue),
-            resolvedLabel: child.label || child.filterValue,
-          };
-        }
-        if (child.kind === "custom") {
-          return {
-            ...child,
-            resolvedLabel: child.label || child.path,
-            resolvedPath: child.path || "/",
-          };
-        }
-        // separator
-        return child;
-      });
-  }
+  // Résoudre les paths des enfants (et de leurs sous-menus)
+  obj.children = sortAndEnrichChildren(obj.children);
 
   return obj;
 };

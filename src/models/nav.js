@@ -18,11 +18,18 @@ const mongoose = require("mongoose");
  *     → lien libre
  * - { kind: "separator" }
  *     → séparateur visuel
+ * - { kind: "submenu", label: "Enquêtes", children: [...] }
+ *     → sous-menu latéral (2e niveau), s'ouvre sur le côté du dropdown
+ *
+ * Les petits-enfants (contenu d'un "submenu") sont du même format que les
+ * enfants, mais ne peuvent plus être imbriqués : la profondeur est volontairement
+ * limitée à deux niveaux (dropdown → sous-menu latéral).
  */
 
-const navChildSchema = new mongoose.Schema(
+// ── Niveau 2 : contenu d'un sous-menu latéral ───────────────────────
+
+const navGrandChildSchema = new mongoose.Schema(
   {
-    // Type d'enfant
     kind: {
       type: String,
       required: true,
@@ -41,6 +48,40 @@ const navChildSchema = new mongoose.Schema(
     // ── Pour kind: "custom" ──
     path: { type: String, trim: true },
     external: { type: Boolean, default: false },
+
+    // Ordre dans le sous-menu
+    order: { type: Number, default: 0 },
+  },
+  { _id: true }
+);
+
+// ── Niveau 1 : contenu d'un dropdown ────────────────────────────────
+
+const navChildSchema = new mongoose.Schema(
+  {
+    // Type d'enfant
+    kind: {
+      type: String,
+      required: true,
+      enum: ["filter", "custom", "separator", "submenu"],
+    },
+
+    // ── Pour kind: "filter" ──
+    filterType: {
+      type: String,
+      enum: ["theme", "typeContenu", "projet", "zone", "periode"],
+    },
+    filterValue: { type: String, trim: true },
+    // Label optionnel (si vide, on utilise filterValue)
+    label: { type: String, trim: true },
+
+    // ── Pour kind: "custom" ──
+    path: { type: String, trim: true },
+    external: { type: Boolean, default: false },
+
+    // ── Pour kind: "submenu" ──
+    // Sous-menu latéral : seul "label" est utilisé, les liens sont dans children
+    children: [navGrandChildSchema],
 
     // Ordre dans le dropdown
     order: { type: Number, default: 0 },
