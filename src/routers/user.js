@@ -3,7 +3,25 @@ const router = new express.Router();
 const User = require("../models/user");
 const auth = require("../middleware/auth");
 
-router.post("/user", async (req, res) => {
+// Un utilisateur est administrateur si son tableau `roles` contient "Admin"
+// (cf. front: types/index.ts -> roles.ADMIN). Comparaison insensible a la
+// casse : les documents existants ne sont pas garantis homogenes.
+const isAdmin = (user) =>
+  Array.isArray(user && user.roles) &&
+  user.roles.some((role) => String(role).toLowerCase() === "admin");
+
+const adminOnly = (req, res, next) => {
+  if (!isAdmin(req.user)) {
+    return res.status(403).send("Acces reserve aux administrateurs");
+  }
+  next();
+};
+
+// Un non-administrateur ne peut agir que sur son propre compte.
+const canActOn = (req, targetId) =>
+  isAdmin(req.user) || req.user._id.toString() === String(targetId);
+
+router.post("/user", auth, adminOnly, async (req, res) => {
   // nouvel utilisateur
   delete req.body.user._id; // deleteOne the object _id from  the request body and dont forget email is necessary
   const user = new User(req.body.user);
@@ -17,17 +35,34 @@ router.post("/user", async (req, res) => {
 });
 
 router.patch("/user", auth, async (req, res) => {
-  // modifier un utilisateur
-  let user = await User.findById(req.body.user._id);
-  if (!user) {
-    return res.status(404).send("Les données sont introuvables");
+  // modifier un utilisateur (profil uniquement)
+  const payload = req.body && req.body.user;
+  if (!payload || !payload._id) {
+    return res.status(400).send("Identifiant manquant");
   }
-  if (!req.body.user.password) {
-    // on ne touche pas au mot de passe si le champ est vide
-    delete req.body.user.password;
+  if (!canActOn(req, payload._id)) {
+    return res.status(403).send("Modification non autorisee");
   }
   try {
-    await Object.assign(user, req.body.user);
+    const user = await User.findById(payload._id);
+    if (!user) {
+      return res.status(404).send("Les données sont introuvables");
+    }
+    // Liste blanche. `password` n'y figure volontairement PAS : un changement
+    // de mot de passe passe exclusivement par PATCH /user/mdp/:id, cette route
+    // ne peut donc plus alterer le mot de passe par effet de bord.
+    // `roles` et `enabled` restent reserves aux administrateurs, sinon un
+    // utilisateur pourrait s'octroyer le role Admin ou se reactiver lui-meme.
+    // Remplace un Object.assign qui recopiait tout le corps de la requete,
+    // `tokens` compris (ce qui permettait de forger ou d'effacer des sessions).
+    const updatable = isAdmin(req.user)
+      ? ["email", "name", "roles", "enabled"]
+      : ["email", "name"];
+    for (const field of updatable) {
+      if (Object.prototype.hasOwnProperty.call(payload, field)) {
+        user[field] = payload[field];
+      }
+    }
     await user.save();
     return res.send(user);
   } catch (error) {
@@ -36,12 +71,30 @@ router.patch("/user", auth, async (req, res) => {
 });
 router.patch("/user/mdp/:id", auth, async (req, res) => {
   // modifier le mot de passe d'un utilisateur
-  let user = await User.findById(req.params.id);
-  if (!user) {
-    return res.status(404).send("Les données sont introuvables");
+  const password = req.body && req.body.password;
+  // Garde-fou : un corps vide ecraserait le mot de passe par le hash de ""
+  // et rendrait le compte inaccessible.
+  if (typeof password !== "string" || password.trim().length === 0) {
+    return res.status(400).send("Le mot de passe est obligatoire");
+  }
+  if (!canActOn(req, req.params.id)) {
+    return res.status(403).send("Modification non autorisee");
   }
   try {
-    user.password = req.body.password;
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).send("Les données sont introuvables");
+    }
+    user.password = password; // le hook pre-save applique le hash bcrypt
+    // Les tokens deja emis restent valides tant qu'ils sont en base
+    // (cf. middleware/auth.js) : on revoque les sessions ouvertes avec
+    // l'ancien mot de passe, en conservant celle de l'appelant s'il change
+    // son propre mot de passe (sinon il serait deconnecte immediatement).
+    if (req.user._id.toString() === user._id.toString()) {
+      user.tokens = user.tokens.filter((t) => t.token === req.token);
+    } else {
+      user.tokens = [];
+    }
     await user.save();
     return res.send(user);
   } catch (error) {
@@ -49,8 +102,12 @@ router.patch("/user/mdp/:id", auth, async (req, res) => {
   }
 });
 
-router.delete("/user/:id", auth, async (req, res) => {
+router.delete("/user/:id", auth, adminOnly, async (req, res) => {
   // desactiver un utilisateur
+  if (req.user._id.toString() === String(req.params.id)) {
+    // sinon un administrateur peut se verrouiller hors de l'application
+    return res.status(400).send("Vous ne pouvez pas désactiver votre compte");
+  }
   const user = await User.findById(req.params.id);
   if (!user) {
     return res.status(404).send("Les données sont introuvables");

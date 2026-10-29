@@ -93,13 +93,8 @@ userSchema.pre("save", async function (next) {
   next();
 });
 const User = mongoose.model("users", userSchema);
-userSchema.pre("find", function () {
-  this.sort({ email: 1 });
-});
-userSchema.pre("findById", function () {
-  this.sort({ email: -1 });
-});
-userSchema.pre("findOne", function () {
-  this.sort({ email: -1 });
-});
+// Note: les hooks pre("find") / pre("findById") / pre("findOne") qui se
+// trouvaient ici etaient enregistres APRES la compilation du modele, donc
+// jamais executes par Mongoose (et "findById" n'est pas un nom de hook
+// valide). Supprimes : le tri par email se fait a l'appel (cf. GET /users).
 module.exports = User;
