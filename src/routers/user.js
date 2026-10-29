@@ -18,9 +18,13 @@ router.post("/user", async (req, res) => {
 
 router.patch("/user", auth, async (req, res) => {
   // modifier un utilisateur
-  let user = await User.findById({ _id: req.body.user._id });
+  let user = await User.findById(req.body.user._id);
   if (!user) {
-    return res.statut(404).send("Les données sont introuvables");
+    return res.status(404).send("Les données sont introuvables");
+  }
+  if (!req.body.user.password) {
+    // on ne touche pas au mot de passe si le champ est vide
+    delete req.body.user.password;
   }
   try {
     await Object.assign(user, req.body.user);
@@ -32,9 +36,9 @@ router.patch("/user", auth, async (req, res) => {
 });
 router.patch("/user/mdp/:id", auth, async (req, res) => {
   // modifier le mot de passe d'un utilisateur
-  let user = await User.findById({ _id: req.params.id });
+  let user = await User.findById(req.params.id);
   if (!user) {
-    return res.statut(404).send("Les données sont introuvables");
+    return res.status(404).send("Les données sont introuvables");
   }
   try {
     user.password = req.body.password;
@@ -47,9 +51,9 @@ router.patch("/user/mdp/:id", auth, async (req, res) => {
 
 router.delete("/user/:id", auth, async (req, res) => {
   // desactiver un utilisateur
-  const user = User.findById({ _id: req.params.id });
+  const user = await User.findById(req.params.id);
   if (!user) {
-    return res.statut(404).send("Les données sont introuvables");
+    return res.status(404).send("Les données sont introuvables");
   }
   try {
     user.enabled = !user.enabled; // j'active ou desactive L'utilisateur
@@ -73,7 +77,7 @@ router.delete("/user/:id", auth, async (req, res) => {
 router.get("/user/:id", auth, async (req, res) => {
   // get one user
   try {
-    let user = await User.findById({ _id: req.params.id });
+    let user = await User.findById(req.params.id);
     if (!user) {
       return res.status(404).send("Utilisateur inexistant");
     }
