@@ -39,15 +39,28 @@ const userSchema = new mongoose.Schema(
 
 // verify credentials, this a function we use on User and not on user
 userSchema.statics.findByCredentials = async (email, password) => {
-  
-  const user = await User.findOne({ email, enabled: true });
-  if (!user) {
-    throw new Error("Cet utilisateur est inexistant");
+  // Codes d'erreur stables, pour que la route choisisse le statut HTTP sans
+  // avoir a interpreter un message. `enabled` est volontairement verifie
+  // APRES le mot de passe : teste avant (l'ancien findOne({email, enabled:
+  // true})), un compte suspendu etait indistinguable d'un email inconnu, ce
+  // qui rendait le diagnostic impossible cote utilisateur. Teste apres, le
+  // refus "compte desactive" n'est revele qu'a qui connait le mot de passe.
+  const fail = (code) => {
+    const error = new Error(code);
+    error.code = code;
+    throw error;
+  };
+
+  const user = await User.findOne({ email });
+  if (!user || !user.password) {
+    fail("INVALID_CREDENTIALS");
   }
   const isMatch = await bcrypt.compare(password, user.password);
-
   if (!isMatch) {
-    throw new Error("Mot de passe erroné");
+    fail("INVALID_CREDENTIALS");
+  }
+  if (!user.enabled) {
+    fail("ACCOUNT_DISABLED");
   }
   return user;
 };

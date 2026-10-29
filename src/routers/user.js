@@ -196,7 +196,20 @@ router.post("/user/login", async (req, res) => {
 
     return res.status(201).send({ user, token });
   } catch (e) {
-    res.status(404).send("Utilisateur inexistant");
+    // Avant, toute erreur devenait 404 "Utilisateur inexistant" : un compte
+    // simplement desactive, un mot de passe errone et meme une panne de base
+    // renvoyaient le meme message, qui affirmait a tort que le compte
+    // n'existait pas.
+    if (e && e.code === "ACCOUNT_DISABLED") {
+      return res
+        .status(403)
+        .send("Votre compte a été désactivé. Contactez un administrateur.");
+    }
+    if (e && e.code === "INVALID_CREDENTIALS") {
+      return res.status(401).send("Email ou mot de passe incorrect");
+    }
+    console.log(e);
+    return res.status(500).send("La connexion a échoué, veuillez réessayer");
   }
 });
 module.exports = router;
