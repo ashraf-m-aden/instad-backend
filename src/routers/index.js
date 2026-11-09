@@ -12,6 +12,7 @@ const thematiques = require("./thematiques");
 const slides = require("./slides");
 const homeSettings = require("./homeSettings");
 const footer = require("./footer");
+const upload = require("./upload");
 allUses = [
   user,
   fichier,
@@ -27,6 +28,7 @@ allUses = [
   thematiques,
   slides,
   homeSettings,
+  upload,
 ];
 
 module.exports = allUses;
