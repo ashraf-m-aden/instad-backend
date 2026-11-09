@@ -1,23 +1,19 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
+const os = require('os');
 const path = require('path');
 const fs = require('fs').promises;
 const MicrodataRequest = require('../models/microdata-request');
+const auth = require('../middleware/auth');
+const s3 = require('../utils/s3');
 
 // === CONFIGURATION MULTER POUR L'UPLOAD DE FICHIERS ===
 
-// Configuration du stockage
+// Les fichiers ne font que transiter par le disque temporaire : ils sont
+// ensuite pousses sur S3 (prefixe prive) puis supprimes du disque.
 const storage = multer.diskStorage({
-  destination: async (req, file, cb) => {
-    const uploadDir = path.join(__dirname, '../uploads/microdata-requests');
-    try {
-      await fs.mkdir(uploadDir, { recursive: true });
-      cb(null, uploadDir);
-    } catch (error) {
-      cb(error, null);
-    }
-  },
+  destination: (req, file, cb) => cb(null, os.tmpdir()),
   filename: (req, file, cb) => {
     const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1E9)}`;
     const ext = path.extname(file.originalname);
@@ -54,18 +50,10 @@ const upload = multer({
   },
 });
 
-// === MIDDLEWARE D'AUTHENTIFICATION (à adapter selon votre système) ===
-
-// Middleware pour vérifier si l'utilisateur est admin (à personnaliser)
-const isAdmin = (req, res, next) => {
-  // TODO: Implémenter votre logique d'authentification admin
-  // Exemple simple (à remplacer par votre système JWT/session) :
-  if (req.headers.authorization === 'Bearer ADMIN_TOKEN' || req.session?.user?.role === 'admin') {
-    next();
-  } else {
-    res.status(403).json({ error: 'Accès non autorisé' });
-  }
-};
+// === ACCES ADMIN ===
+// Les routes /admin exposent des donnees personnelles (identite, coordonnees,
+// projets) : elles passent toutes par le middleware auth (JWT + token en base),
+// le meme que le reste de l'API.
 
 // === ROUTES PUBLIQUES ===
 
@@ -141,14 +129,28 @@ router.post('/api/microdata-requests', upload.array('attachments', 5), async (re
       });
     }
 
-    // Traiter les fichiers uploadés
-    const attachments = req.files ? req.files.map(file => ({
-      filename: file.filename,
-      originalName: file.originalname,
-      path: file.path,
-      mimetype: file.mimetype,
-      size: file.size,
-    })) : [];
+    // Reference generee ici (et non dans le hook pre-save) pour servir de
+    // dossier aux pieces jointes sur S3.
+    const referenceNumber = await MicrodataRequest.generateReferenceNumber();
+
+    // Les pieces jointes partent dans le prefixe prive du bucket uploads.
+    const attachments = [];
+    for (const file of req.files || []) {
+      const key = `${s3.PRIVATE_PREFIX}/${referenceNumber}/${file.filename}`;
+      await s3.putFile({
+        key,
+        filePath: file.path,
+        size: file.size,
+        contentType: file.mimetype,
+      });
+      attachments.push({
+        filename: file.filename,
+        originalName: file.originalname,
+        key,
+        mimetype: file.mimetype,
+        size: file.size,
+      });
+    }
 
     // Parser les objets JSON
     const parsedAddress = address ? JSON.parse(address) : { street: '', city: '', country: 'Djibouti' };
@@ -165,6 +167,7 @@ router.post('/api/microdata-requests', upload.array('attachments', 5), async (re
 
     // Créer la demande
     const microdataRequest = new MicrodataRequest({
+      referenceNumber,
       requesterType,
       firstName,
       lastName,
@@ -221,22 +224,17 @@ router.post('/api/microdata-requests', upload.array('attachments', 5), async (re
 
   } catch (error) {
     console.error('Erreur lors de la création de la demande:', error);
-    
-    // Supprimer les fichiers uploadés en cas d'erreur
-    if (req.files) {
-      req.files.forEach(async (file) => {
-        try {
-          await fs.unlink(file.path);
-        } catch (unlinkError) {
-          console.error('Erreur suppression fichier:', unlinkError);
-        }
-      });
-    }
 
     res.status(500).json({ 
       error: 'Erreur lors de la soumission de la demande',
       details: error.message 
     });
+  } finally {
+    // Le disque temporaire est vide dans tous les cas : les fichiers vivent
+    // desormais sur S3.
+    for (const file of req.files || []) {
+      await fs.unlink(file.path).catch(() => {});
+    }
   }
 });
 
@@ -331,7 +329,7 @@ router.get('/verify-email/:email', async (req, res) => {
  * @desc    Obtenir toutes les demandes (avec filtres et pagination)
  * @access  Private/Admin
  */
-router.get('/api/microdata-requests/admin', async (req, res) => {
+router.get('/api/microdata-requests/admin', auth, async (req, res) => {
   try {
     const { 
       page = 1, 
@@ -409,7 +407,7 @@ router.get('/api/microdata-requests/admin', async (req, res) => {
  * @desc    Obtenir les détails complets d'une demande
  * @access  Private/Admin
  */
-router.get('/api/microdata-requests/admin/:id', async (req, res) => {
+router.get('/api/microdata-requests/admin/:id', auth, async (req, res) => {
   try {
     const request = await MicrodataRequest.findById(req.params.id)
       .populate('statusHistory.updatedBy', 'firstName lastName email')
@@ -432,11 +430,59 @@ router.get('/api/microdata-requests/admin/:id', async (req, res) => {
 });
 
 /**
+ * @route   GET /api/microdata-requests/admin/:id/attachments/:filename
+ * @desc    URL temporaire (5 min) pour telecharger une piece jointe. Le fichier
+ *          n'est pas servi par l'API : on renvoie une URL S3 presignee, le
+ *          prefixe microdonnees/ etant exclu de la lecture publique du bucket.
+ * @access  Private/Admin
+ */
+router.get(
+  '/api/microdata-requests/admin/:id/attachments/:filename',
+  auth,
+  async (req, res) => {
+    try {
+      const request = await MicrodataRequest.findById(req.params.id).lean();
+      if (!request) {
+        return res.status(404).json({ error: 'Demande introuvable' });
+      }
+
+      // On ne signe que des pieces jointes reellement rattachees a la demande :
+      // le nom de fichier venant du client ne doit pas servir de cle libre.
+      const attachment = (request.attachments || []).find(
+        (item) => item.filename === req.params.filename
+      );
+      if (!attachment) {
+        return res.status(404).json({ error: 'Piece jointe introuvable' });
+      }
+
+      if (!attachment.key) {
+        return res.status(409).json({
+          error:
+            "Piece jointe pas encore migree sur S3 (voir src/scripts/migrate-microdata-attachments-to-s3.js)",
+        });
+      }
+
+      const url = await s3.presignGetUrl(attachment.key, {
+        expiresIn: 300,
+        downloadName: attachment.originalName,
+      });
+
+      return res.json({ success: true, url, expiresIn: 300 });
+    } catch (error) {
+      console.error('Erreur signature piece jointe:', error);
+      return res
+        .status(500)
+        .json({ error: 'Erreur lors de la preparation du telechargement' });
+    }
+  }
+);
+
+/**
  * @route   PATCH /api/microdata-requests/admin/:id/status
  * @desc    Mettre à jour le statut d'une demande
  * @access  Private/Admin
  */
-router.patch('/api/microdata-requests/admin/:id/status', async (req, res) => {
+router.patch('/api/microdata-requests/admin/:id/status', auth, async (req, res) => {
   try {
     const { status, comment, publicComment } = req.body;
 
@@ -487,7 +533,7 @@ router.patch('/api/microdata-requests/admin/:id/status', async (req, res) => {
  * @desc    Ajouter une note interne à une demande
  * @access  Private/Admin
  */
-router.post('/api/microdata-requests/admin/:id/notes', async (req, res) => {
+router.post('/api/microdata-requests/admin/:id/notes', auth, async (req, res) => {
   try {
     const { note } = req.body;
 
@@ -521,7 +567,7 @@ router.post('/api/microdata-requests/admin/:id/notes', async (req, res) => {
  * @desc    Supprimer une demande (soft delete recommandé)
  * @access  Private/Admin
  */
-router.delete('/api/microdata-requests/admin/:id', async (req, res) => {
+router.delete('/api/microdata-requests/admin/:id', auth, async (req, res) => {
   try {
     const request = await MicrodataRequest.findById(req.params.id);
     
@@ -537,13 +583,16 @@ router.delete('/api/microdata-requests/admin/:id', async (req, res) => {
     await MicrodataRequest.findByIdAndDelete(req.params.id);
 
     // Supprimer les fichiers associés
-    if (request.attachments.length > 0) {
-      for (const attachment of request.attachments) {
-        try {
+    for (const attachment of request.attachments) {
+      try {
+        if (attachment.key) {
+          await s3.deleteKey(attachment.key);
+        } else if (attachment.path) {
+          // Demande anterieure a la bascule S3, fichier encore sur le volume
           await fs.unlink(attachment.path);
-        } catch (unlinkError) {
-          console.error('Erreur suppression fichier:', unlinkError);
         }
+      } catch (unlinkError) {
+        console.error('Erreur suppression fichier:', unlinkError);
       }
     }
 
@@ -563,7 +612,7 @@ router.delete('/api/microdata-requests/admin/:id', async (req, res) => {
  * @desc    Obtenir des statistiques globales
  * @access  Private/Admin
  */
-router.get('/api/microdata-requests/admin/stats/overview', async (req, res) => {
+router.get('/api/microdata-requests/admin/stats/overview', auth, async (req, res) => {
   try {
     const [totalRequests, statusBreakdown, recentRequests, monthlyStats] = await Promise.all([
       // Total des demandes
