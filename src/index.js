@@ -44,6 +44,8 @@ const configCORS = {
 };
 app.use(cors(configCORS));
 
+app.get("/health", (req, res) => res.status(200).send("OK"));
+
 app.use(express.json());
 app.use(all);
 
