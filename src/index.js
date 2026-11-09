@@ -17,6 +17,7 @@ const allowedOrigins = [
   "https://instad-stagging.netlify.app",
   "http://localhost:3003",
   "https://instad.dj",
+  "https://www.instad.dj",
 ];
 const configCORS = {
   origin: function (origin, callback) {

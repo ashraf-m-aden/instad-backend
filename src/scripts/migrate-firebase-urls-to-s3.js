@@ -9,12 +9,14 @@
  *   node src/scripts/migrate-firebase-urls-to-s3.js --apply    -> applique reellement les changements
  *
  * Variables d'environnement requises : MONGODB_URL
- * Optionnelles : S3_PUBLIC_BUCKET (defaut: instad-public-files), AWS_REGION (defaut: eu-west-3)
+ * Requises aussi : S3_UPLOADS_BUCKET (le meme bucket que la route POST /upload)
+ * Optionnelle : AWS_REGION (defaut: eu-west-3)
  */
 require("dotenv").config();
 const mongoose = require("mongoose");
 
-const S3_BUCKET = process.env.S3_PUBLIC_BUCKET || "instad-public-files";
+const S3_BUCKET =
+  process.env.S3_UPLOADS_BUCKET || process.env.S3_PUBLIC_BUCKET;
 const S3_REGION = process.env.AWS_REGION || "eu-west-3";
 const S3_BASE_URL = `https://${S3_BUCKET}.s3.${S3_REGION}.amazonaws.com`;
 
@@ -91,6 +93,9 @@ async function migrateCollection({ name, Model, fields }) {
 async function main() {
   if (!process.env.MONGODB_URL) {
     throw new Error("MONGODB_URL manquant (variable d'environnement)");
+  }
+  if (!S3_BUCKET) {
+    throw new Error("S3_UPLOADS_BUCKET manquant (variable d'environnement)");
   }
 
   await mongoose.connect(process.env.MONGODB_URL);
