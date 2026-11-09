@@ -167,6 +167,10 @@ const microdataRequestSchema = new mongoose.Schema(
       {
         filename: String,
         originalName: String,
+        // Cle S3 dans le prefixe prive "microdonnees/" (pieces jointes
+        // depuis la bascule S3). "path" n'est renseigne que sur les demandes
+        // anterieures, dont le fichier est encore sur le volume de l'EC2.
+        key: String,
         path: String,
         mimetype: String,
         size: Number,

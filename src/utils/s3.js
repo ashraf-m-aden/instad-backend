@@ -12,7 +12,9 @@ const {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } = require("@aws-sdk/client-s3");
+const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
 const REGION = process.env.AWS_REGION || "eu-west-3";
 // S3_PUBLIC_BUCKET : ancien nom, conserve pour compatibilite avec les scripts.
@@ -29,6 +31,15 @@ const isConfigured = () => Boolean(BUCKET);
 const baseUrl = () => `https://${BUCKET}.s3.${REGION}.amazonaws.com`;
 
 const encodeKey = (key) => key.split("/").map(encodeURIComponent).join("/");
+
+/**
+ * Prefixe des pieces jointes des demandes de micro-donnees. Le bucket est
+ * public en lecture SAUF ce prefixe, exclu par un Deny dans la bucket policy
+ * (voir instad-infra/s3-public-files-bucket-policy.json) : ces fichiers
+ * contiennent des donnees personnelles et ne sont lisibles que via une URL
+ * presignee generee par l'API.
+ */
+const PRIVATE_PREFIX = "microdonnees";
 
 const keyToUrl = (key) => `${baseUrl()}/${encodeKey(key)}`;
 
@@ -76,7 +87,7 @@ const urlToKey = (rawUrl) => {
  * Envoie un fichier sur disque vers S3 en streaming (le binaire ne passe pas
  * en memoire) et renvoie son URL publique.
  */
-const putFile = async ({ key, filePath, size, contentType }) => {
+const putFile = async ({ key, filePath, size, contentType, cacheControl }) => {
   await getClient().send(
     new PutObjectCommand({
       Bucket: BUCKET,
@@ -84,12 +95,34 @@ const putFile = async ({ key, filePath, size, contentType }) => {
       Body: fs.createReadStream(filePath),
       ContentLength: size,
       ContentType: contentType || "application/octet-stream",
-      CacheControl: "public, max-age=31536000, immutable",
+      CacheControl:
+        cacheControl ||
+        (key.startsWith(`${PRIVATE_PREFIX}/`)
+          ? "private, no-store"
+          : "public, max-age=31536000, immutable"),
     })
   );
 
   return keyToUrl(key);
 };
+
+/**
+ * URL temporaire pour telecharger un objet non public (pieces jointes).
+ * Signee avec les credentials du role IAM de l'instance, donc valable malgre
+ * le Deny public sur le prefixe.
+ */
+const presignGetUrl = async (key, { expiresIn = 300, downloadName } = {}) =>
+  getSignedUrl(
+    getClient(),
+    new GetObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      ResponseContentDisposition: downloadName
+        ? `attachment; filename="${downloadName.replace(/"/g, "")}"`
+        : undefined,
+    }),
+    { expiresIn }
+  );
 
 const deleteKey = async (key) => {
   await getClient().send(
@@ -99,6 +132,8 @@ const deleteKey = async (key) => {
 
 module.exports = {
   isConfigured,
+  PRIVATE_PREFIX,
+  presignGetUrl,
   bucket: () => BUCKET,
   region: () => REGION,
   normalizeKey,
