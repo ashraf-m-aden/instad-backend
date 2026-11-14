@@ -45,9 +45,11 @@ router.delete("/fichier/:id", auth, async (req, res) => {
   }
 });
 
+// Route publique : un fichier desactive ne doit pas etre accessible, meme
+// par son id. L'admin passe par /fichiers/filter pour voir les desactives.
 router.get("/fichier/:id", async (req, res) => {
   try {
-    let fichier = await Fichier.findById({ _id: req.params.id });
+    let fichier = await Fichier.findOne({ _id: req.params.id, enabled: true });
     if (!fichier) {
       return res.status(404).send("Fichier inexistant");
     }
@@ -57,10 +59,12 @@ router.get("/fichier/:id", async (req, res) => {
   }
 });
 
+// Route publique (ancienne API, conservee pour compatibilite) : ne renvoie
+// que les fichiers actifs.
 router.get("/fichiers/:categorie/:year?", async (req, res) => {
   try {
     const year = req.params.year;
-    const query = { categorie: req.params.categorie };
+    const query = { categorie: req.params.categorie, enabled: true };
     if (year && year !== "undefined") query.year = year;
     const fichiers = await Fichier.find(query);
     return res.status(200).send(fichiers || []);
@@ -69,9 +73,15 @@ router.get("/fichiers/:categorie/:year?", async (req, res) => {
   }
 });
 
+// Route publique (bloc "Dernieres publications" de l'accueil) : le filtre
+// doit etre cote serveur, le client ne peut pas l'appliquer sans fausser
+// la limite de 25 documents.
 router.post("/publications", async (req, res) => {
   try {
-    const fichiers = await Fichier.find({ categorie: { $nin: req.body } })
+    const fichiers = await Fichier.find({
+      categorie: { $nin: req.body },
+      enabled: true,
+    })
       .sort({ year: 1, month: 1, trimestre: 1, updatedAt: 1 })
       .limit(25);
     res.status(200).send(fichiers || []);
@@ -82,7 +92,10 @@ router.post("/publications", async (req, res) => {
 
 router.get("/newsletters/public/:categorie", async (req, res) => {
   try {
-    const fichiers = await Fichier.find({ categorie: req.params.categorie })
+    const fichiers = await Fichier.find({
+      categorie: req.params.categorie,
+      enabled: true,
+    })
       .sort({ updatedAt: 1 })
       .limit(3);
     res.status(200).send(fichiers || []);

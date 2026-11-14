@@ -161,10 +161,11 @@ router.get("/infographics/:category", async (req, res) => {
   }
 });
 
-// Get all infographics
+// Get all infographics (public : les infographies desactivees sont masquees,
+// contrairement a la route admin ci-dessus qui doit pouvoir les reactiver)
 router.get("/infographics/public/:category", async (req, res) => {
   try {
-    const infographics = await Fichier.find({categorie:req.params.category}).sort({ createdAt: -1 }).limit(5);
+    const infographics = await Fichier.find({categorie:req.params.category, enabled:true}).sort({ createdAt: -1 }).limit(5);
     if (!infographics) {
       res.status(200).send([]);
     }
