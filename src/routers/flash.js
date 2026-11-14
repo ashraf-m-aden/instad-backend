@@ -15,14 +15,22 @@ router.post("/flash", async (req, res) => {
   }
 });
 
+// Modifier une info flash (texte et/ou lien).
 router.patch("/flash", auth, async (req, res) => {
-  // modifier un utilisateur
-  let flash = await Flash.findById({ _id: req.body._id });
-  if (!flash) {
-    return res.statut(404).send("Les données sont introuvables");
-  }
   try {
-    await Object.assign(flash, req.body);
+    const flash = await Flash.findById(req.body._id);
+    if (!flash) {
+      // "statut" au lieu de "status" : la recherche d'un flash inexistant
+      // levait un TypeError hors du try et renvoyait 500 au lieu de 404.
+      return res.status(404).send("Les données sont introuvables");
+    }
+
+    // Seuls ces champs sont modifiables : un Object.assign du corps entier
+    // laisserait le client ecraser _id ou les timestamps.
+    if (req.body.info !== undefined) flash.info = req.body.info;
+    if (req.body.url !== undefined) flash.url = req.body.url;
+    if (req.body.enabled !== undefined) flash.enabled = req.body.enabled;
+
     await flash.save();
     return res.send(flash);
   } catch (error) {
